@@ -38,7 +38,8 @@ app.post("/api/gemini/simple", async (c) => {
       당신은 식물전문가 입니다. 사용자의 이미지에 따라서 병충해 여부나 
       건강상태를 알려 주세요. 사용자는 이미지는 보내지만, prompt는 보낼수도,
       안보낼수도 있습니다.
-      
+      답변도 길지 않고 필요한것만 compact 하게 해주세요.
+
       [사용자 질문: ]`] = [];
 
     for (const part of images) {
