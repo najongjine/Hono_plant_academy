@@ -27,51 +27,56 @@ app.use(
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 app.post("/api/gemini/simple", async (c) => {
   try {
-    // Hono에서 multipart 받기 (File API 형태)
     const form = await c.req.formData();
     const prompt = String(form.get("prompt") || "");
-
     const images = form.getAll("images").filter(Boolean);
 
-    // Gemini contents 구성: 이미지(여러개 가능) + 텍스트
-    const contents: any[`[시스템 instruction] : 
-      당신은 식물전문가 입니다. 사용자의 이미지에 따라서 병충해 여부나 
-      건강상태를 알려 주세요. 사용자는 이미지는 보내지만, prompt는 보낼수도,
-      안보낼수도 있습니다.
-      답변은 짧게, 한국어로 해주세요.
+    // 1) Part 배열 생성
+    const parts: any[] = [];
 
-      [사용자 질문: ]`] = [];
-
-    for (const part of images) {
-      if (part instanceof File) {
-        const mimeType = part.type || "image/jpeg";
-        const buf = Buffer.from(await part.arrayBuffer());
-        const b64 = buf.toString("base64");
-        contents.push({
-          inlineData: { mimeType, data: b64 },
+    for (const f of images) {
+      if (f instanceof File) {
+        const mimeType = f.type || "image/jpeg";
+        const buf = Buffer.from(await f.arrayBuffer());
+        parts.push({
+          inlineData: { mimeType, data: buf.toString("base64") },
         });
       }
     }
 
-    if (prompt) contents.push({ text: prompt });
+    if (prompt) {
+      parts.push({ text: prompt });
+    } else {
+      // 프롬프트가 없을 때도 한국어 지시가 전달되도록 최소 안내문 추가
+      parts.unshift({ text: "이 사진을 보고 한국어로 간단히 설명하고, 병충해/건강 상태를 추정해줘." });
+    }
 
-    if (contents.length === 0) {
+    if (parts.length === 0) {
       return c.json({ error: "이미지 또는 프롬프트를 제공하세요." }, 400);
     }
 
-    // Gemini 2.5 Flash에 질의 (텍스트 응답)
+    // 2) 시스템 지시(한국어 고정)
+    const SYSTEM_KO = `
+당신은 식물 전문가입니다. 사용자가 보낸 식물 사진을 보고
+병충해 여부와 건강 상태를 간단히 판단해 주세요.
+답변은 반드시 한국어로, 짧고 명확하게 작성하세요.
+`;
+
     const result = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents,
-    });
+      // parts를 하나의 user 콘텐츠로 래핑
+      contents: [{ role: "user", parts }],
+      // 한국어로 답하게 하는 시스템 지시
+      config: { systemInstruction: SYSTEM_KO, responseMimeType: "text/plain" },
+    }); // systemInstruction 사용 예시는 공식 문서의 Node 샘플에도 있습니다. :contentReference[oaicite:1]{index=1}
 
-    const text = result.text || "";
-    return c.json({ text });
+    return c.json({ text: result.text || "" });
   } catch (err: any) {
     console.error(err);
     return c.json({ error: err?.message || "서버 오류" }, 500);
   }
 });
+
 
 app.route('/api/file', gemini_route);
 
