@@ -3,7 +3,6 @@
  */
 
 import { Hono } from "hono";
-import { verifyToken } from "../utils/utils.js";
 import axios from "axios";
 import { sql } from "../db.js";
 
@@ -25,13 +24,7 @@ router.post("/confirm", async (c) => {
             authHeader = "";
         }
 
-        // 2. 토큰 검증
-        const tokenData: any = verifyToken(authHeader);
-        if (!tokenData?.idp) {
-            // result.success = false;
-            // result.message = "로그인이 필요합니다";
-            // return c.json(result);
-        }
+
 
         const body = await c?.req?.json();
 
