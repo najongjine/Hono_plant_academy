@@ -6,6 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 
 import gemini_route from "./router/gemini_route.js"
 import wiki_route from "./router/wiki_route.js"
+import tosspay_route from "./router/tosspay.js"
 
 const app = new Hono();
 
@@ -81,6 +82,7 @@ app.post("/api/gemini/simple", async (c) => {
 
 app.route('/api/file', gemini_route);
 app.route('/api/wiki', wiki_route);
+app.route('/api/tosspay', tosspay_route);
 
 app.get('/', (c) => {
   return c.text('Hello Hono!')
