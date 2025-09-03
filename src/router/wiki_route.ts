@@ -26,5 +26,33 @@ router.get('/', async (c) => {
         return c.json(result)
     }
 });
+router.get('/get_a_wiki', async (c) => {
+    let result: { success: boolean; data: any; code: string; message: string } = {
+        success: true,
+        data: null,
+        code: "",
+        message: ``,
+    };
+    try {
+        const wiki_id = Number(c.req.query("wiki_id") ?? 0);
+        let data: any = await sql`
+        SELECT 
+        *
+        FROM t_plants
+        WHERE id = ${wiki_id}
+        `;
+        try {
+            data = data[0];
+        } catch (error: any) {
+            data = null;
+        }
+        result.data = data;
+        return c.json(result);
+    } catch (error: any) {
+        result.success = false;
+        result.message = `error. ${error?.message ?? ""}`
+        return c.json(result)
+    }
+});
 
 export default router;
